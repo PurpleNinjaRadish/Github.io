@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-23T19:11:10.952Z",
+  "generated_at": "2026-11-23T19:18:49.874Z",
   "repos": [
     {
       "name": "Github.io",
@@ -12,7 +12,7 @@
       "language": "HTML",
       "topics": [],
       "stars": 0,
-      "pushed_at": "2026-11-23T19:10:54Z",
+      "pushed_at": "2026-11-23T19:13:11Z",
       "created_at": "2026-11-23T19:02:26Z",
       "apk": null
     },
@@ -36,7 +36,7 @@
       "description": "Diagnostic testing and intervention automatic analysis ",
       "html_url": "https://github.com/PurpleNinjaRadish/DI-ana",
       "homepage": "",
-      "has_pages": false,
+      "has_pages": true,
       "fork": false,
       "archived": false,
       "language": "JavaScript",
@@ -51,7 +51,7 @@
       "description": "",
       "html_url": "https://github.com/PurpleNinjaRadish/Flash-card-Generator.",
       "homepage": "",
-      "has_pages": false,
+      "has_pages": true,
       "fork": false,
       "archived": false,
       "language": "HTML",
