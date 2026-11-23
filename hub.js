@@ -25,7 +25,7 @@ const Hub = (() => {
     return {
       username: c.username || "",
       hubRepo: c.hubRepo || "",
-      title: c.title || "Project Hub",
+      title: c.title || "Mr. T Tools Hub",
       tagline: c.tagline || "",
       autoShowNew: c.autoShowNew !== false,
       showOnlyWithPages: !!c.showOnlyWithPages,
@@ -38,7 +38,21 @@ const Hub = (() => {
   }
 
   // Fetch every public repo for the user (pages through 100 at a time).
-  async function loadRepos(username, { useCache = true, token = "" } = {}) {
+  // Prefer data.json (built hourly by the GitHub Action) so visitors never hit API limits.
+  async function loadSnapshot() {
+    try {
+      const res = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) return null;
+      const d = await res.json();
+      return Array.isArray(d.repos) ? d : null;
+    } catch { return null; }
+  }
+
+  async function loadRepos(username, { useCache = true, token = "", live = false } = {}) {
+    if (!live) {
+      const snap = await loadSnapshot();
+      if (snap) return snap.repos;
+    }
     if (useCache) {
       try {
         const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
@@ -80,6 +94,7 @@ const Hub = (() => {
       stars: r.stargazers_count || 0,
       pushed_at: r.pushed_at,
       created_at: r.created_at,
+      apk: null,
     }));
     try { localStorage.setItem(CACHE_KEY, JSON.stringify({ user: username, at: Date.now(), repos: slim })); } catch {}
     return slim;
@@ -105,6 +120,7 @@ const Hub = (() => {
       .map((r) => {
         const o = cfg.overrides[r.name] || {};
         const url = safeUrl(o.url) || liveUrl(r, cfg.username);
+        const apk = safeUrl(o.apk) || (r.apk && safeUrl(r.apk.url)) || "";
         return {
           repo: r,
           name: r.name,
@@ -112,6 +128,7 @@ const Hub = (() => {
           description: o.description || r.description || "",
           category: o.category || "",
           url,
+          apk,
           code: r.html_url,
           pinned: cfg.pinned.includes(r.name),
           isNew: !cfg.hidden.includes(r.name) && !cfg.shown.includes(r.name) && !cfg.pinned.includes(r.name) && !cfg.overrides[r.name],
@@ -126,7 +143,7 @@ const Hub = (() => {
     if (approved) return true;
     if (!cfg.autoShowNew) return false;
     if (item.repo.fork && !cfg.includeForks) return false;
-    if (cfg.showOnlyWithPages && !item.url) return false;
+    if (cfg.showOnlyWithPages && !item.url && !item.apk) return false;
     return true;
   }
 
@@ -148,5 +165,5 @@ const Hub = (() => {
     return "just now";
   }
 
-  return { esc, safeUrl, loadConfig, normalizeConfig, loadRepos, buildItems, isVisible, sortItems, timeAgo, CACHE_KEY };
+  return { esc, safeUrl, loadConfig, loadSnapshot, normalizeConfig, loadRepos, buildItems, isVisible, sortItems, timeAgo, CACHE_KEY };
 })();

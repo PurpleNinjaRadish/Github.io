@@ -1,6 +1,6 @@
-# Project Hub
+# Mr. T Tools Hub
 
-A public GitHub Pages site that lists all of my GitHub projects, with a description of what each one does and a link to its live page. New public repos appear on their own. `admin.html` controls which projects are shown.
+A public GitHub Pages site that lists all of my tools, with a description of each, a link to its web version, and an APK download for Android apps. New public repos appear on their own. `admin.html` controls which projects are shown.
 
 - **Public page:** https://purpleninjaradish.github.io/Github.io/
 - **Editor:** https://purpleninjaradish.github.io/Github.io/admin.html
@@ -35,3 +35,9 @@ A public GitHub Pages site that lists all of my GitHub projects, with a descript
 | Auto-show forks | Includes repos you forked |
 
 To give a project a live page, open that repo's **Settings → Pages** and turn Pages on. It will get an **Open** button automatically.
+
+## Web versions and APK downloads
+
+- **🌐 Web version:** appears automatically when a repo has GitHub Pages turned on or a *Website* set. You can also paste any link in the editor.
+- **📱 Download APK:** appears automatically when a repo's newest release that has an APK contains a file ending in `.apk`. You can also paste any link in the editor.
+- The **Refresh project list** GitHub Action rebuilds `data.json` every hour, so visitors don't hit GitHub's API limits. To refresh right away, open **Actions → Refresh project list → Run workflow**.

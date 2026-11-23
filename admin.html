@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Hub Editor</title>
+  <title>Mr. T Tools Hub — Editor</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>Hub Editor</h1>
+      <h1>Mr. T Tools Hub — Editor</h1>
       <p>Choose which projects appear on your public hub. Saving commits <code>config.json</code> to your repo.</p>
     </header>
 
@@ -36,7 +36,7 @@
         </div>
         <div class="row" style="margin-top:12px">
           <label class="toggle"><input id="s-auto" type="checkbox" /> Auto-show new repos</label>
-          <label class="toggle"><input id="s-pages" type="checkbox" /> Only auto-show repos with a live page</label>
+          <label class="toggle"><input id="s-pages" type="checkbox" /> Only auto-show repos with a web version or APK</label>
           <label class="toggle"><input id="s-forks" type="checkbox" /> Auto-show forks</label>
         </div>
       </div>
@@ -105,7 +105,11 @@
           const file = await res.json();
           sha = file.sha;
           cfg = Hub.normalizeConfig(JSON.parse(b64decode(file.content)));
-          const repos = await Hub.loadRepos(cfg.username, { useCache: false, token });
+          // Live list (so brand-new repos show up right away) + APKs found by the hourly Action.
+          const repos = await Hub.loadRepos(cfg.username, { useCache: false, token, live: true });
+          const snap = await Hub.loadSnapshot();
+          const apks = Object.fromEntries((snap ? snap.repos : []).map((r) => [r.name, r.apk]));
+          repos.forEach((r) => { r.apk = apks[r.name] || null; });
           items = Hub.buildItems(repos, cfg);
           fillSettings(); renderPinned(); renderRepos();
           $("editor").hidden = false; $("savebar").hidden = false;
@@ -169,7 +173,8 @@
             <div class="repo-head">
               <div class="row" style="gap:8px">
                 <strong>${e(it.name)}</strong>
-                ${it.url ? '<span class="badge live">live page</span>' : '<span class="badge off">no page</span>'}
+                ${it.url ? '<span class="badge live">🌐 web</span>' : '<span class="badge off">no web page</span>'}
+                ${it.apk ? '<span class="badge live">📱 apk</span>' : ""}
                 ${r.fork ? '<span class="badge">fork</span>' : ""}
                 ${it.isNew ? '<span class="badge">new</span>' : ""}
               </div>
@@ -181,7 +186,10 @@
             <div class="edit-grid">
               <label class="field">Display name <input type="text" data-o="title" value="${e(o.title || "")}" placeholder="${e(it.title)}"/></label>
               <label class="field">Category <input type="text" data-o="category" value="${e(o.category || "")}" placeholder="e.g. Classroom, Tools"/></label>
-              <label class="field">Link (optional) <input type="url" data-o="url" value="${e(o.url || "")}" placeholder="${e(it.url || "https://…")}"/></label>
+            </div>
+            <div class="edit-grid">
+              <label class="field">🌐 Web version link <input type="url" data-o="url" value="${e(o.url || "")}" placeholder="${e(it.url || "Auto: turn on GitHub Pages, or paste a link")}"/></label>
+              <label class="field">📱 APK download link <input type="url" data-o="apk" value="${e(o.apk || "")}" placeholder="${e((r.apk && r.apk.url) || "Auto: attach a .apk to a GitHub release, or paste a link")}"/></label>
             </div>
             <label class="field">What it does <textarea data-o="description" placeholder="${e(r.description || "Describe what this project does…")}">${e(o.description || "")}</textarea></label>
           </div>`;
@@ -212,8 +220,8 @@
 
       $("save").onclick = async () => {
         if (!cfg) return;
-        const bad = Object.entries(cfg.overrides).find(([, o]) => o.url && !Hub.safeUrl(o.url));
-        if (bad) return setMsg(`Link for ${bad[0]} must start with https://`, "err");
+        const bad = Object.entries(cfg.overrides).find(([, o]) => (o.url && !Hub.safeUrl(o.url)) || (o.apk && !Hub.safeUrl(o.apk)));
+        if (bad) return setMsg(`Links for ${bad[0]} must start with https://`, "err");
         $("save").disabled = true; setMsg("Saving…");
         try {
           const body = JSON.stringify(cfg, null, 2) + "\n";

@@ -67,6 +67,8 @@ header p { margin: 0; color: var(--muted); }
   background: var(--card); color: var(--ink); cursor: pointer;
 }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.apk { background: var(--good); color: #fff; border-color: var(--good); }
+.chip-sep { width: 1px; background: var(--line); margin: 0 4px; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .status { color: var(--muted); padding: 30px 0; text-align: center; }
 footer { margin-top: 40px; color: var(--muted); font-size: 0.85rem; text-align: center; }
