@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Hub Editor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Hub Editor</h1>
+      <p>Choose which projects appear on your public hub. Saving commits <code>config.json</code> to your repo.</p>
+    </header>
+
+    <div class="panel" style="margin-top:22px">
+      <h2>1. Sign in with a GitHub token</h2>
+      <div class="row">
+        <label class="field">Fine-grained token (Contents: read &amp; write on the hub repo only)
+          <input id="token" type="password" autocomplete="off" placeholder="github_pat_…" />
+        </label>
+        <label class="toggle"><input id="remember" type="checkbox" /> Remember in this tab</label>
+        <button id="connect" class="btn primary">Load</button>
+      </div>
+      <p class="small">The token stays in your browser and is only sent to api.github.com.
+        <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a token ↗</a></p>
+    </div>
+
+    <div id="editor" hidden>
+      <div class="panel">
+        <h2>2. Page settings</h2>
+        <div class="edit-grid">
+          <label class="field">Page title <input id="s-title" type="text" /></label>
+          <label class="field">Tagline <input id="s-tagline" type="text" /></label>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <label class="toggle"><input id="s-auto" type="checkbox" /> Auto-show new repos</label>
+          <label class="toggle"><input id="s-pages" type="checkbox" /> Only auto-show repos with a live page</label>
+          <label class="toggle"><input id="s-forks" type="checkbox" /> Auto-show forks</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Featured order</h2>
+        <div id="pinned" class="small">Nothing featured yet — tick “Feature” on a project below.</div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="justify-content:space-between">
+          <h2 style="margin:0">3. Projects</h2>
+          <div id="filters" class="chips">
+            <button class="chip on" data-f="all">All</button>
+            <button class="chip" data-f="shown">Shown</button>
+            <button class="chip" data-f="hidden">Hidden</button>
+            <button class="chip" data-f="new">New</button>
+          </div>
+        </div>
+        <div id="repos" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="savebar" id="savebar" hidden>
+    <span id="msg" class="msg"></span>
+    <a class="btn" href="./" target="_blank" rel="noopener">View hub ↗</a>
+    <button id="save" class="btn primary">Save changes</button>
+  </div>
+
+  <script src="hub.js"></script>
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const e = Hub.esc;
+      let token = "", cfg = null, sha = "", items = [], filter = "all", dirty = false, owner = "", repoName = "";
+
+      try { const t = sessionStorage.getItem("hub-token"); if (t) { $("token").value = t; $("remember").checked = true; } } catch {}
+
+      const api = (path, opts = {}) =>
+        fetch("https://api.github.com" + path, {
+          ...opts,
+          headers: { Accept: "application/vnd.github+json", Authorization: "Bearer " + token, ...(opts.headers || {}) },
+        });
+
+      const b64decode = (s) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g, "")), (c) => c.charCodeAt(0)));
+      const b64encode = (s) => { let bin = ""; new TextEncoder().encode(s).forEach((b) => (bin += String.fromCharCode(b))); return btoa(bin); };
+
+      function setMsg(text, kind = "") { $("msg").textContent = text; $("msg").className = "msg " + kind; }
+      function markDirty() { dirty = true; setMsg("Unsaved changes"); }
+      const uniq = (a) => [...new Set(a)];
+      const without = (a, n) => a.filter((x) => x !== n);
+
+      $("connect").onclick = async () => {
+        token = $("token").value.trim();
+        if (!token) return alert("Paste your token first.");
+        try { $("remember").checked ? sessionStorage.setItem("hub-token", token) : sessionStorage.removeItem("hub-token"); } catch {}
+        $("connect").disabled = true; $("connect").textContent = "Loading…";
+        try {
+          // Read the public config to learn the owner/repo, then fetch the live copy (with sha) through the API.
+          const pub = await Hub.loadConfig();
+          owner = pub.username; repoName = pub.hubRepo;
+          const res = await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}/contents/config.json`);
+          if (res.status === 401) throw new Error("Token was rejected.");
+          if (!res.ok) throw new Error(`Can't read config.json from ${owner}/${repoName} (HTTP ${res.status}). Check the token's repo access and the hubRepo value.`);
+          const file = await res.json();
+          sha = file.sha;
+          cfg = Hub.normalizeConfig(JSON.parse(b64decode(file.content)));
+          const repos = await Hub.loadRepos(cfg.username, { useCache: false, token });
+          items = Hub.buildItems(repos, cfg);
+          fillSettings(); renderPinned(); renderRepos();
+          $("editor").hidden = false; $("savebar").hidden = false;
+          setMsg(`Loaded ${items.length} repos.`, "ok");
+        } catch (err) {
+          alert(err.message);
+        } finally {
+          $("connect").disabled = false; $("connect").textContent = "Reload";
+        }
+      };
+
+      function fillSettings() {
+        $("s-title").value = cfg.title;
+        $("s-tagline").value = cfg.tagline;
+        $("s-auto").checked = cfg.autoShowNew;
+        $("s-pages").checked = cfg.showOnlyWithPages;
+        $("s-forks").checked = cfg.includeForks;
+      }
+      $("s-title").oninput = (ev) => { cfg.title = ev.target.value; markDirty(); };
+      $("s-tagline").oninput = (ev) => { cfg.tagline = ev.target.value; markDirty(); };
+      $("s-auto").onchange = (ev) => { cfg.autoShowNew = ev.target.checked; markDirty(); renderRepos(); };
+      $("s-pages").onchange = (ev) => { cfg.showOnlyWithPages = ev.target.checked; markDirty(); renderRepos(); };
+      $("s-forks").onchange = (ev) => { cfg.includeForks = ev.target.checked; markDirty(); renderRepos(); };
+
+      $("filters").onclick = (ev) => {
+        const b = ev.target.closest("[data-f]"); if (!b) return;
+        filter = b.dataset.f;
+        [...$("filters").children].forEach((c) => c.classList.toggle("on", c === b));
+        renderRepos();
+      };
+
+      function renderPinned() {
+        if (!cfg.pinned.length) { $("pinned").innerHTML = "Nothing featured yet — tick “Feature” on a project below."; return; }
+        $("pinned").innerHTML = cfg.pinned.map((n, i) => `
+          <div class="row" style="padding:4px 0">
+            <button class="btn" data-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move up">↑</button>
+            <button class="btn" data-down="${i}" ${i === cfg.pinned.length - 1 ? "disabled" : ""} aria-label="Move down">↓</button>
+            <span>${i + 1}. ${e(n)}</span>
+          </div>`).join("");
+      }
+      $("pinned").onclick = (ev) => {
+        const up = ev.target.closest("[data-up]"), down = ev.target.closest("[data-down]");
+        if (!up && !down) return;
+        const i = Number((up || down).dataset[up ? "up" : "down"]), j = up ? i - 1 : i + 1;
+        [cfg.pinned[i], cfg.pinned[j]] = [cfg.pinned[j], cfg.pinned[i]];
+        markDirty(); renderPinned();
+      };
+
+      function renderRepos() {
+        const list = items.filter((it) => {
+          const vis = Hub.isVisible(it, cfg);
+          return filter === "all" || (filter === "shown" && vis) || (filter === "hidden" && !vis) || (filter === "new" && it.isNew);
+        });
+        $("repos").innerHTML = list.length ? list.map(row).join("") : '<p class="small">No repos here.</p>';
+      }
+
+      function row(it) {
+        const o = cfg.overrides[it.name] || {}, r = it.repo, vis = Hub.isVisible(it, cfg);
+        return `
+          <div class="repo-row${vis ? "" : " hidden-repo"}" data-name="${e(it.name)}">
+            <div class="repo-head">
+              <div class="row" style="gap:8px">
+                <strong>${e(it.name)}</strong>
+                ${it.url ? '<span class="badge live">live page</span>' : '<span class="badge off">no page</span>'}
+                ${r.fork ? '<span class="badge">fork</span>' : ""}
+                ${it.isNew ? '<span class="badge">new</span>' : ""}
+              </div>
+              <div class="row">
+                <label class="toggle"><input type="checkbox" data-act="show" ${vis ? "checked" : ""}/> Show</label>
+                <label class="toggle"><input type="checkbox" data-act="pin" ${cfg.pinned.includes(it.name) ? "checked" : ""}/> Feature</label>
+              </div>
+            </div>
+            <div class="edit-grid">
+              <label class="field">Display name <input type="text" data-o="title" value="${e(o.title || "")}" placeholder="${e(it.title)}"/></label>
+              <label class="field">Category <input type="text" data-o="category" value="${e(o.category || "")}" placeholder="e.g. Classroom, Tools"/></label>
+              <label class="field">Link (optional) <input type="url" data-o="url" value="${e(o.url || "")}" placeholder="${e(it.url || "https://…")}"/></label>
+            </div>
+            <label class="field">What it does <textarea data-o="description" placeholder="${e(r.description || "Describe what this project does…")}">${e(o.description || "")}</textarea></label>
+          </div>`;
+      }
+
+      $("repos").addEventListener("change", (ev) => {
+        const el = ev.target, rowEl = el.closest("[data-name]"); if (!rowEl || !el.dataset.act) return;
+        const n = rowEl.dataset.name;
+        if (el.dataset.act === "show") {
+          if (el.checked) { cfg.hidden = without(cfg.hidden, n); cfg.shown = uniq([...cfg.shown, n]); }
+          else { cfg.hidden = uniq([...cfg.hidden, n]); cfg.shown = without(cfg.shown, n); cfg.pinned = without(cfg.pinned, n); }
+        } else if (el.dataset.act === "pin") {
+          if (el.checked) { cfg.pinned = uniq([...cfg.pinned, n]); cfg.hidden = without(cfg.hidden, n); }
+          else cfg.pinned = without(cfg.pinned, n);
+        }
+        items.find((i) => i.name === n).isNew = false;
+        markDirty(); renderPinned(); renderRepos();
+      });
+
+      $("repos").addEventListener("input", (ev) => {
+        const el = ev.target, rowEl = el.closest("[data-name]"); if (!rowEl || !el.dataset.o) return;
+        const n = rowEl.dataset.name, o = { ...(cfg.overrides[n] || {}) };
+        const v = el.value.trim();
+        if (v) o[el.dataset.o] = v; else delete o[el.dataset.o];
+        if (Object.keys(o).length) cfg.overrides[n] = o; else delete cfg.overrides[n];
+        markDirty();
+      });
+
+      $("save").onclick = async () => {
+        if (!cfg) return;
+        const bad = Object.entries(cfg.overrides).find(([, o]) => o.url && !Hub.safeUrl(o.url));
+        if (bad) return setMsg(`Link for ${bad[0]} must start with https://`, "err");
+        $("save").disabled = true; setMsg("Saving…");
+        try {
+          const body = JSON.stringify(cfg, null, 2) + "\n";
+          const res = await api(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}/contents/config.json`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: "Update hub projects", content: b64encode(body), sha }),
+          });
+          if (res.status === 409) throw new Error("config.json changed elsewhere — click Reload, then redo your edits.");
+          if (!res.ok) throw new Error("GitHub returned " + res.status + ". Does the token have Contents: write?");
+          sha = (await res.json()).content.sha;
+          dirty = false;
+          try { localStorage.removeItem(Hub.CACHE_KEY); } catch {}
+          setMsg("Saved! The public page updates in about a minute.", "ok");
+        } catch (err) {
+          setMsg(err.message, "err");
+        } finally {
+          $("save").disabled = false;
+        }
+      };
+
+      window.addEventListener("beforeunload", (ev) => { if (dirty) { ev.preventDefault(); ev.returnValue = ""; } });
+    })();
+  </script>
+</body>
+</html>

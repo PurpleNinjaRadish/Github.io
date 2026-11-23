@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project Hub</title>
+  <meta name="description" content="A directory of my GitHub projects and their live pages." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 id="title">Project Hub</h1>
+      <p id="tagline"></p>
+    </header>
+
+    <div class="toolbar">
+      <input id="search" class="search" type="search" placeholder="Search projects…" aria-label="Search projects" />
+      <div id="chips" class="chips"></div>
+    </div>
+
+    <div id="status" class="status">Loading projects…</div>
+    <div id="grid" class="grid"></div>
+
+    <footer>
+      <span id="count"></span> · Auto-updates from <a id="ghlink" href="#">GitHub</a>
+    </footer>
+  </div>
+
+  <script src="hub.js"></script>
+  <script>
+    (async () => {
+      const $ = (id) => document.getElementById(id);
+      let items = [], activeCat = "All";
+
+      function render() {
+        const q = $("search").value.trim().toLowerCase();
+        const list = items.filter((it) =>
+          (activeCat === "All" || it.category === activeCat) &&
+          (!q || [it.title, it.name, it.description, it.category, it.repo.language, ...(it.repo.topics || [])]
+            .join(" ").toLowerCase().includes(q))
+        );
+        $("grid").innerHTML = list.map(card).join("");
+        $("status").textContent = list.length ? "" : "No projects match.";
+        $("status").style.display = list.length ? "none" : "block";
+        $("count").textContent = `${items.length} project${items.length === 1 ? "" : "s"}`;
+      }
+
+      function card(it) {
+        const e = Hub.esc, r = it.repo;
+        const tags = [
+          it.pinned ? '<span class="tag">★ Featured</span>' : "",
+          it.category ? `<span class="tag">${e(it.category)}</span>` : "",
+          r.language ? `<span>${e(r.language)}</span>` : "",
+          `<span>Updated ${e(Hub.timeAgo(r.pushed_at))}</span>`,
+        ].join("");
+        return `
+          <article class="card${it.pinned ? " pinned" : ""}">
+            <h2>${e(it.title)}</h2>
+            <p class="desc${it.description ? "" : " empty"}">${e(it.description || "No description yet.")}</p>
+            <div class="meta">${tags}</div>
+            <div class="actions">
+              ${it.url ? `<a class="btn primary" href="${e(it.url)}" target="_blank" rel="noopener">Open ↗</a>` : ""}
+              <a class="btn" href="${e(it.code)}" target="_blank" rel="noopener">Code</a>
+            </div>
+          </article>`;
+      }
+
+      function renderChips() {
+        const cats = [...new Set(items.map((i) => i.category).filter(Boolean))].sort();
+        if (!cats.length) { $("chips").innerHTML = ""; return; }
+        $("chips").innerHTML = ["All", ...cats]
+          .map((c) => `<button class="chip${c === activeCat ? " on" : ""}" data-cat="${Hub.esc(c)}">${Hub.esc(c)}</button>`)
+          .join("");
+      }
+
+      $("chips").addEventListener("click", (ev) => {
+        const b = ev.target.closest("[data-cat]");
+        if (!b) return;
+        activeCat = b.dataset.cat;
+        renderChips(); render();
+      });
+      $("search").addEventListener("input", render);
+
+      try {
+        const cfg = await Hub.loadConfig();
+        document.title = cfg.title;
+        $("title").textContent = cfg.title;
+        $("tagline").textContent = cfg.tagline;
+        $("ghlink").href = `https://github.com/${encodeURIComponent(cfg.username)}`;
+        const repos = await Hub.loadRepos(cfg.username);
+        items = Hub.sortItems(Hub.buildItems(repos, cfg).filter((i) => Hub.isVisible(i, cfg)), cfg);
+        renderChips(); render();
+      } catch (err) {
+        $("status").textContent = "Couldn't load projects: " + err.message;
+      }
+    })();
+  </script>
+</body>
+</html>
