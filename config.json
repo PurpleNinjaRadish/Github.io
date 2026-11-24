@@ -15,6 +15,7 @@
       "apk": "https://github.com/PurpleNinjaRadish/Fluid/raw/android-build/fluid-android.apk"
     },
     "DI-ana": {
+      "title": "DI-ana",
       "apk": "https://github.com/PurpleNinjaRadish/DI-ana/raw/android-build/diana-android.apk"
     }
   }
