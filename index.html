@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mr. T Tools Hub</title>
   <meta name="description" content="A directory of my GitHub projects and their live pages." />
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <div class="wrap">
@@ -27,7 +27,7 @@
     </footer>
   </div>
 
-  <script src="hub.js?v=3"></script>
+  <script src="hub.js?v=4"></script>
   <script>
     (async () => {
       const $ = (id) => document.getElementById(id);
@@ -59,7 +59,10 @@
         ].join("");
         return `
           <article class="card${it.pinned ? " pinned" : ""}">
-            <h2>${e(it.title)}</h2>
+            <div class="card-head">
+              <img class="logo" src="${e(it.logo)}" data-fallback="${e(Hub.letterTile(it.title))}" alt="" width="52" height="52" loading="lazy" />
+              <h2>${e(it.title)}</h2>
+            </div>
             <p class="desc${it.description ? "" : " empty"}">${e(it.description || "No description yet.")}</p>
             <div class="meta">${tags}</div>
             <div class="actions">
@@ -89,6 +92,11 @@
         renderChips(); render();
       });
       $("search").addEventListener("input", render);
+      // Swap in a letter tile when a logo file is missing.
+      $("grid").addEventListener("error", (ev) => {
+        const img = ev.target;
+        if (img.tagName === "IMG" && img.dataset.fallback && img.src !== img.dataset.fallback) img.src = img.dataset.fallback;
+      }, true);
 
       try {
         const cfg = await Hub.loadConfig();

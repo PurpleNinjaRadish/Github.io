@@ -101,3 +101,6 @@ textarea { min-height: 60px; resize: vertical; }
 .msg.err { color: #d0384b; }
 .msg.ok { color: var(--good); }
 .small { font-size: 0.85rem; color: var(--muted); }
+
+.card-head { display: flex; align-items: center; gap: 12px; }
+.card .logo { width: 52px; height: 52px; border-radius: 13px; flex: none; box-shadow: 0 2px 6px rgba(0,0,0,.18); }

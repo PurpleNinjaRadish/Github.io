@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
   <title>Mr. T Tools Hub — Editor</title>
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <div class="wrap">
@@ -67,7 +67,7 @@
     <button id="save" class="btn primary">Save changes</button>
   </div>
 
-  <script src="hub.js?v=3"></script>
+  <script src="hub.js?v=4"></script>
   <script>
     (() => {
       const $ = (id) => document.getElementById(id);
@@ -172,6 +172,7 @@
           <div class="repo-row${vis ? "" : " hidden-repo"}" data-name="${e(it.name)}">
             <div class="repo-head">
               <div class="row" style="gap:8px">
+                <img src="${e(it.logo)}" alt="" width="32" height="32" style="border-radius:8px" onerror="this.src='${e(Hub.letterTile(it.title))}'" />
                 <strong>${e(it.name)}</strong>
                 ${it.url ? '<span class="badge live">🌐 web</span>' : '<span class="badge off">no web page</span>'}
                 ${it.apk ? '<span class="badge live">📱 apk</span>' : ""}
@@ -189,6 +190,7 @@
             </div>
             <div class="edit-grid">
               <label class="field">🌐 Web version link <input type="url" data-o="url" value="${e(o.url || "")}" placeholder="${e(it.url || "Auto: turn on GitHub Pages, or paste a link")}"/></label>
+              <label class="field">🖼️ Logo image link <input type="url" data-o="logo" value="${e(o.logo || "")}" placeholder="Auto: logos/${e(it.name)}.svg in the hub repo"/></label>
               <label class="field">📱 APK download link <input type="url" data-o="apk" value="${e(o.apk || "")}" placeholder="${e((r.apk && r.apk.url) || "Auto: attach a .apk to a GitHub release, or paste a link")}"/></label>
             </div>
             <label class="field">What it does <textarea data-o="description" placeholder="${e(r.description || "Describe what this project does…")}">${e(o.description || "")}</textarea></label>
@@ -220,7 +222,7 @@
 
       $("save").onclick = async () => {
         if (!cfg) return;
-        const bad = Object.entries(cfg.overrides).find(([, o]) => (o.url && !Hub.safeUrl(o.url)) || (o.apk && !Hub.safeUrl(o.apk)));
+        const bad = Object.entries(cfg.overrides).find(([, o]) => ["url","apk","logo"].some((k) => o[k] && !Hub.safeUrl(o[k])));
         if (bad) return setMsg(`Links for ${bad[0]} must start with https://`, "err");
         $("save").disabled = true; setMsg("Saving…");
         try {

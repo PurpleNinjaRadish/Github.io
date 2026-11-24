@@ -41,3 +41,7 @@ To give a project a live page, open that repo's **Settings → Pages** and turn 
 - **🌐 Web version:** appears automatically when a repo has GitHub Pages turned on or a *Website* set. You can also paste any link in the editor.
 - **📱 Download APK:** appears automatically when a repo's newest release that has an APK contains a file ending in `.apk`. You can also paste any link in the editor.
 - The **Refresh project list** GitHub Action rebuilds `data.json` every hour, so visitors don't hit GitHub's API limits. To refresh right away, open **Actions → Refresh project list → Run workflow**.
+
+## Logos
+
+Each tool shows `logos/<repo-name>.svg` from this repo (for example `logos/Scadstl.svg`). To change one, replace that file, or paste an image link in the editor's **Logo image link** field. A repo with no logo gets a coloured letter tile automatically.

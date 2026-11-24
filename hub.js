@@ -129,6 +129,7 @@ const Hub = (() => {
           category: o.category || "",
           url,
           apk,
+          logo: safeUrl(o.logo) || `logos/${encodeURIComponent(r.name)}.svg`,
           code: r.html_url,
           pinned: cfg.pinned.includes(r.name),
           isNew: !cfg.hidden.includes(r.name) && !cfg.shown.includes(r.name) && !cfg.pinned.includes(r.name) && !cfg.overrides[r.name],
@@ -165,5 +166,13 @@ const Hub = (() => {
     return "just now";
   }
 
-  return { esc, safeUrl, loadConfig, loadSnapshot, normalizeConfig, loadRepos, buildItems, isVisible, sortItems, timeAgo, CACHE_KEY };
+  // Coloured letter tile used when a repo has no logo file yet.
+  function letterTile(title) {
+    let h = 0; for (const c of title) h = (h * 31 + c.charCodeAt(0)) % 360;
+    const ch = (title.trim()[0] || "?").toUpperCase().replace(/[<&>"']/g, "");
+    return "data:image/svg+xml," + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="hsl(${h},55%,45%)"/><text x="32" y="43" font-family="system-ui,sans-serif" font-size="30" font-weight="700" fill="#fff" text-anchor="middle">${ch}</text></svg>`);
+  }
+
+  return { letterTile, esc, safeUrl, loadConfig, loadSnapshot, normalizeConfig, loadRepos, buildItems, isVisible, sortItems, timeAgo, CACHE_KEY };
 })();
