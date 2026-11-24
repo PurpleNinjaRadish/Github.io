@@ -9,5 +9,13 @@
   "hidden": [],
   "shown": [],
   "pinned": [],
-  "overrides": {}
+  "overrides": {
+    "Fluid": {
+      "url": "https://purpleninjaradish.github.io/Odin-2/fluid/",
+      "apk": "https://github.com/PurpleNinjaRadish/Fluid/releases/latest/download/fluid-android.apk"
+    },
+    "DI-ana": {
+      "apk": "https://github.com/PurpleNinjaRadish/DI-ana/raw/android-build/diana-android.apk"
+    }
+  }
 }
