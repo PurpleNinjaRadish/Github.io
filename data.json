@@ -1,6 +1,26 @@
 {
-  "generated_at": "2026-11-25T00:51:25.984Z",
+  "generated_at": "2026-11-25T09:54:42.927Z",
   "repos": [
+    {
+      "name": "arb-scanner",
+      "description": "",
+      "html_url": "https://github.com/PurpleNinjaRadish/arb-scanner",
+      "homepage": "",
+      "has_pages": false,
+      "fork": false,
+      "archived": false,
+      "language": "JavaScript",
+      "topics": [],
+      "stars": 0,
+      "pushed_at": "2026-11-25T09:05:16Z",
+      "created_at": "2026-11-25T08:51:28Z",
+      "apk": {
+        "name": "arb-scanner-v3-debug.apk",
+        "url": "https://github.com/PurpleNinjaRadish/arb-scanner/releases/download/android-latest/arb-scanner-v3-debug.apk",
+        "tag": "android-latest",
+        "size": 17512921
+      }
+    },
     {
       "name": "Github.io",
       "description": "Share page for all tools",
@@ -12,7 +32,7 @@
       "language": "HTML",
       "topics": [],
       "stars": 0,
-      "pushed_at": "2026-11-24T18:37:03Z",
+      "pushed_at": "2026-11-25T00:51:27Z",
       "created_at": "2026-11-23T19:02:26Z",
       "apk": null
     },
